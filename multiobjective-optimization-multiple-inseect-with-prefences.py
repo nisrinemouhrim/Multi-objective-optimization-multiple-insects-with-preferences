@@ -505,7 +505,7 @@ def main() :
     # TODO also, we should do things properly and create a log file
 
     # load information on the problem
-    json_instance = load_instance('../data/data_project_with_preferences.json') 
+    json_instance = load_instance('../data_project_with_preferences.json') 
 
     # boundaries for all the values included in the individual
     boundaries = dict()
