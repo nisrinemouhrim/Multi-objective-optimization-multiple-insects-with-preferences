@@ -7,10 +7,6 @@ Created on Thu Mar 10
 """
 
 # Script to perform multi-objective optimization of an insect chain, using only one type of insect
-#
-
-
-
 
 import copy
 import inspyred # library for evolutionary algorithms
@@ -71,39 +67,36 @@ def convert_individual_to_values(candidate, boundaries) :
     
     
 
+        
+        
+
     return SC, Nl, AIF, F, EQ, RW, I, C, r, theta
 
-def fitness_function(candidate, json_instance, boundaries) :   
+def fitness_function(candidate, json_instance, boundaries) :  
 
     operating_profit = 0 # maximize
     insect_frass = 0 # minimize
-    labor = 0 # maximize
-    labor_safety = 0 # maximize
+    labor_safety = 0 # maximize    
     
-
     SC, Nl, AIF, F, EQ, RW, I, C, r, theta = convert_individual_to_values(candidate, boundaries)
-
     
     # operating profit and frass
     biomass = 0.0
-    feed_cost = 0.0
+
     insect_frass = 0.0
     labor_safety = 0.0
     labor_safety_cost= 0.0
     labor_safety_max = 0.0
     FWP_max = 0.0
     social_rejection = 0.0
-    distance_farm_feed_suppliers = 0.0
     profit = 0.0
     
     
     # equipment cost
-    equipment_cost = 0.0
     #weight = random.uniform(0, 1) # TODO why was this weight randomized?
-    weight = 0.5
-    coord_1=0.0
+
+    social_rejection_max = 0.0
     
-    print(json_instance["equipments"])
     for index, equip_dict in enumerate(json_instance["equipments"]) : 
         labor_safety_cost += equip_dict["equipment_cost"] * EQ[index] * Nl
         labor_safety += equip_dict["equipment_cost"] * EQ[index] * json_instance["SFls"][SC-1] * Nl
@@ -114,17 +107,18 @@ def fitness_function(candidate, json_instance, boundaries) :
     
     FWP = (RW / json_instance["countries"][C-1]["RWT"])* (json_instance["countries"][C-1]["CWT"]/json_instance["countries"][C-1]["MLW"])*(1 - np.square(json_instance["countries"][C-1]["IEF"]))         
     FWP_max = (boundaries["RW"][C-1][1] / json_instance["countries"][C-1]["RWT"])* (json_instance["countries"][C-1]["CWT"]/json_instance["countries"][C-1]["MLW"])*(1 - np.square(json_instance["countries"][C-1]["IEF"]))
-    for index_2, insect_dict in enumerate(json_instance["insects"]) :
-        social_rejection += json_instance["countries"][C-1]["pop"] / DC[C-1] * insect_dict["risk"] * I[index_2] * SC      
-    social_aspect = weight * labor_safety / labor_safety_max + (1-weight) *FWP / FWP_max
+    for index_2, insect_dict in enumerate(json_instance["insects"]) : 
+        social_rejection += json_instance["countries"][C-1]["pop"] / DC[C-1] * insect_dict["risk"] * I[index_2] * SC  
+        social_rejection_max += json_instance["countries"][C-1]["pop"] / DC[C-1] * 4 * 1 * SC
+    
+    social_aspect = labor_safety / labor_safety_max + FWP / FWP_max +  social_rejection/social_rejection_max
     
     for index, insect_dict in enumerate(json_instance["insects"]) :
         for index_2, feed_dict in enumerate(insect_dict["feed"]) :
             biomass = AIF * F[index_2] * feed_dict["FCE"]
-            feed_cost += AIF * F[index] * feed_dict["feed_cost"]     
             insect_frass += AIF / feed_dict["FCE"] * (1.0 - feed_dict["FCE"]) * json_instance["Frsf"][SC-1]
-            profit += (insect_dict["sales_price"] - insect_dict["energy_water_cost"]-json_instance["countries"][C-1]["rent"]) * biomass
-    operating_profit =  profit - RW*Nl*12 -labor_safety_cost - feed_cost 
+            profit += (insect_dict["sales_price"] - feed_dict["Costs"]) * biomass
+    operating_profit =  profit - RW*Nl*12 -labor_safety_cost 
     
 
     environmental_aspect = max(json_instance["lambda"][0] * (max(DFS) - DFS[C-2]) / (max(DFS) - min(DFS)),  json_instance["lambda"][1] * insect_frass)
@@ -173,21 +167,20 @@ def generator(random, args) :
         
     # an insect can or cannot be chosen
     individual["I"] = list()
-    while np.all(individual["I"] ==0) or len(individual["I"]) == 0 :
+    start = True
+    while any(a != 0 for a in individual["I"]) == False or len(individual["I"]) == 0 or start == True:
+        individual["I"].clear()
         for i in range(0, boundaries["I"]) :
             individual["I"].append(random.choice([0, 1]) * preferences["I"][i]) 
-    
+        start = False
+
     # a country should be chosen
     individual["C"] = random.choice(preferences["C"]) 
     
     # the polar coordinate of the farm position should be generated as a couple of float
     individual["r"] =  random.uniform(0, 1)
     individual["theta"] =  random.uniform(0, 1)
-      
-
-    # some output
-    print("Individual generated: %s" % str(individual))
-
+        
     return individual
 
 
@@ -282,15 +275,13 @@ def random_lat_lon(lat, lon, min_radius, max_radius ):
 
 @inspyred.ec.variators.crossover
 def variator(random, candidate1, candidate2, args) :
-
+    
     children = []
     boundaries = args["boundaries"]
-    min_mutation_radius = 3000
-    max_mutation_radius = 4000
+    preferences = args["preferences"]
 
     # decide whether we are going to perform a cross-over
     perform_crossover = random.uniform(0, 1) < 0.8 # this is True or False
-
     # cross-over
     if perform_crossover :
         print("I am going to perform a cross-over!")
@@ -322,7 +313,7 @@ def variator(random, candidate1, candidate2, args) :
         # different cases
         if to_be_mutated == "SC" :
             # pick another scale for the company, different from the current one
-            sc_choices = [sc for sc in boundaries["SC"] if sc != individual["SC"]]
+            sc_choices = [sc for sc in boundaries["SC"] if sc != individual["SC"] and sc in preferences["Sc"]]
             individual["SC"] = random.choice(sc_choices)
 
         elif to_be_mutated == "AIF" or to_be_mutated == "Nl" :
@@ -355,20 +346,31 @@ def variator(random, candidate1, candidate2, args) :
         
         elif to_be_mutated == "C" :
             # pick another country to implement the company, different from the current one
-            c_choices = [c for c in boundaries["C"] if c != individual["C"]]
+            c_choices = [c for c in boundaries["C"] if c != individual["C"] and c in preferences["Sc"]] 
             individual["C"] = random.choice(c_choices)
                         
-        
         elif to_be_mutated == "I" :
+            start = True
             # perform a random number of bit flips; low (high probability) or high (low probability)
-            number_of_bit_flips = min(random.randint(1, len(individual["I"])) for i in range(0, len(individual["I"])))
-            indexes = random.sample(range(0, len(individual["I"])), number_of_bit_flips)
-
+            while len(individual["I"]) == 0 or start == True :
+                number_of_bit_flips = min(random.randint(1, len(individual["I"])) for i in range(0, len(individual["I"])))
+                indexes = random.sample(range(0, len(individual["I"])), number_of_bit_flips)
+                start = False
+            
+            individual_2 = list()
+            for i in range(0, boundaries["I"]) :
+                individual_2.append(individual["I"][i])
             for index in indexes :
-                if individual["I"][index] == 0 :
+                if individual["I"][index] == 0 and preferences["I"] != 0:
                     individual["I"][index] = 1
                 else :
                     individual["I"][index] = 0
+            if any(a != 0 for a in individual["I"]) == False:
+                individual["I"].clear()
+                for i in range(0, boundaries["I"]) :
+                    individual["I"].append(individual_2[i])
+               
+                
         
         elif to_be_mutated == "r" :
             individual["r"] += random.gauss(0, 0.1)
@@ -411,102 +413,44 @@ def observer(population, num_generations, num_evaluations, args) :
 
 
 
-def variables_list():
-    
-    fd_1, fd_2, fd_3, fd_4, fd_5, I_1, I_2, I_3, I_4, C_1, C_2, C_3, C_4, Sc_1, Sc_2, Sc_3, Sc_4, F_1, F_2, F_3= [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,-1, -1, -1, -1, -1, -1, -1, -1, -1]
-    
+def variables_list( boundaries, json_preferences):
+
+       
     preferences = dict()
     preferences["fd"] = list()
-    while fd_1 != 1 and fd_1 != 0:
-        fd_1 = int(input("Please press 1 if a feed is selected and 0 otherwise \n\n Poultry feed: "))
-    preferences["fd"].append(fd_1)
-    while fd_2 != 1 and fd_2 != 0:
-        fd_2 = int(input(" milling by-products: "))
-    preferences["fd"].append(fd_2)
-    while fd_3 != 1 and fd_3 != 0:
-        fd_3 = int(input(" fruits and vegetables: ")) 
-    preferences["fd"].append(fd_3)
-    while fd_4 != 1 and fd_4 != 0:
-        fd_4 = int(input(" Plant residus: "))
-    preferences["fd"].append(fd_4)
-    while fd_5 != 1 and fd_5 != 0:
-        fd_5 = int(input(" Brewers spent grains: "))
-    preferences["fd"].append(fd_5)
+    for f in range(0, boundaries["F"]) :
+        preferences["fd"].append(json_preferences["feed"][f])
     
     preferences["I"] = list()
-    while I_1 != 1 and I_1 != 0:
-        I_1 = int(input("Please press 1 if an isect is selected and 0 otherwise \n\n House cricket: "))
-    preferences["I"].append(I_1)    
-    while I_2 != 1 and I_2 != 0:
-        I_2 = int(input(" House fly: "))
-    preferences["I"].append(I_2)    
-    while I_3 != 1 and I_3 != 0:
-        I_3 = int(input(" Black soldier fly: "))
-    preferences["I"].append(I_3)   
-    while I_4 != 1 and I_4 != 0:
-        I_4 = int(input(" Mealworm: "))
-    preferences["I"].append(I_4)
+    for i in range(0, boundaries["I"]) :
+        preferences["I"].append(json_preferences["insect"][i])
     
     preferences["C"] = list()
-    while C_1 != 1 and C_1 != 0:
-        C_1 = int(input("Please press 1 if a country is a candidate to be chosen and 0 otherwise \n\n Netherland: "))
-    if C_1 == 1:
-        preferences["C"].append(1)
-    while C_2 != 1 and C_2 != 0:
-        C_2 = int(input(" Germany: "))
-    if C_2 == 1:
-        preferences["C"].append(2)
-    while C_3 != 1 and C_3 != 0:   
-        C_3 = int(input(" France: "))
-    if C_3 == 1:
-        preferences["C"].append(3)
-    while C_4 != 1 and C_4 != 0:   
-        C_4 = int(input(" UK: "))
-    if C_4 == 1:
-        preferences["C"].append(4)
+    for c in range(0, len(json_preferences["region"])) :
+        preferences["C"].append(json_preferences["region"][c])
     
     preferences["Sc"] = list()
-    while Sc_1 != 1 and Sc_1 != 0:
-        Sc_1 = int(input("Please press 1 if a scale is a candidate to be chosen and 0 otherwise \n\n Scale 1: "))
-    if Sc_1 == 1:
-        preferences["Sc"].append(1)
-    while Sc_2 != 1 and Sc_2 != 0:   
-        Sc_2 = int(input(" Scale 2: "))
-    if Sc_2 == 1:
-        preferences["Sc"].append(2)
-    while Sc_3 != 1 and Sc_3 != 0:   
-        Sc_3 = int(input(" Scale 3: "))
-    if Sc_3 == 1:
-        preferences["Sc"].append(3)
-    while Sc_4 != 1 and Sc_4 != 0:   
-        Sc_4 = int(input(" Scale 4: "))  
-    if Sc_3 == 1:
-        preferences["Sc"].append(4)
-    
+    for sc in range(0, len(json_preferences["scaling"])):
+        preferences["Sc"].append(json_preferences["scaling"][sc])
+                
     preferences["Obj"] = list()
-    while F_1 != 1 and F_1 != 0:
-        F_1 = int(input("what aspects do you take into account ? : \n\n Economic aspect: "))
-    preferences["Obj"].append(F_1)
-    while F_2 != 1 and F_2 != 0:
-        F_2 = int(input(" Environmental aspect: "))
-    preferences["Obj"].append(F_2)
-    while F_3 != 1 and F_3 != 0:
-        F_3 = int(input(" Social aspect: "))
-    preferences["Obj"].append(F_3)
+    for o in range(0, len(json_preferences["objectives"])):
+        preferences["Obj"].append(json_preferences["objectives"][o])
     
       
     return preferences
 
 def main() :
-    preferences = variables_list()
+    
     # a few hard-coded parameters
     random_seed = 42
 
     # TODO also, we should do things properly and create a log file
 
     # load information on the problem
-    json_instance = load_instance('../data_project_with_preferences.json') 
-
+    json_instance = load_instance('../data/data_project_with_preferences.json') 
+    json_preferences = load_instance('../data/preferences.json') 
+    
     # boundaries for all the values included in the individual
     boundaries = dict()
     boundaries["SC"] = [1, 2, 3, 4] # minimum and maximum
@@ -535,7 +479,7 @@ def main() :
     boundaries["RW"][2] = [1608, 2639]
     boundaries["RW"][3] = [1208, 2679]
   
-    
+    preferences = variables_list(boundaries, json_preferences)
     
     # initialize random number generator
     random_number_generator = random.Random()
@@ -546,7 +490,7 @@ def main() :
     nsga2.observer = observer
     nsga2.terminator = inspyred.ec.terminators.evaluation_termination # stop after a certain number of evaluations
     nsga2.variator = [variator] # types of evolutionary operators to be used
-
+    
     final_pareto_front = nsga2.evolve(
                             generator = generator,
                             evaluator = evaluator,
