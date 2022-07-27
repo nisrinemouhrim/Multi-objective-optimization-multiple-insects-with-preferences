@@ -1,0 +1,281 @@
+
+{                      
+    "insects": [
+    {
+    "id": 1,
+    "name": "House cricket",
+    "risk": 3,                         
+    "sales_price": 1800,      
+    "frass_price": 20,
+     "feed": [
+     {
+     "id": 1,
+     "name": "Poultry feed",
+     "FCE": 0.7,
+     "Costs": 1862.66
+     },
+     {
+     "id": 2,
+     "name": "milling by-products",
+     "FCE": 0.3,
+     "Costs": 370.58
+     },
+     {
+     "id": 3,
+     "name": "fruits and vegetables",  
+     "FCE": 0.6,
+     "Costs": 108.54
+     },
+     {
+     "id": 4,
+     "name": "Plant residus", 
+     "FCE": 0.5,
+     "Costs": 190.66
+     }, 
+     {
+     "id": 5,
+     "name": "Brewers spent grains", 
+     "FCE": 0.65,
+     "Costs": 264.98
+     }  
+         ]
+    },
+    {
+    "id": 2,
+    "name": "House fly",  
+    "risk": 1,                     
+    "total_indirect_costs": 850,   
+    "sales_price": 1650,   
+    "frass_price": 20,
+    "feed": [
+    {
+    "id": 1,
+    "name": "Poultry feed",
+    "FCE": 0.7,
+    "Costs": 1905
+    },
+    {
+    "id": 2,
+    "name": "milling by-products",
+    "FCE": 0.3,
+    "Costs": 379
+    },
+    {
+    "id": 3,
+    "name": "fruits and vegetables",  
+    "FCE": 0.6,
+    "Costs": 111
+    },
+    {
+    "id": 4,
+    "name": "Plant residus", 
+    "FCE": 0.5,
+    "Costs": 195
+    }, 
+    {
+    "id": 5,
+    "name": "Brewers spent grains", 
+    "FCE": 0.65,
+    "Costs": 271
+    }  
+        ]
+    },
+    {
+    "id": 3,
+    "name": "Black soldier fly", 
+    "risk": 4,                    
+    "total_indirect_costs": 850,   
+    "sales_price": 1800,  
+    "energy_water_cost": 314, 
+    "frass_price": 20,
+    "feed": [
+   {
+   "id": 1,
+   "name": "Poultry feed",
+   "FCE": 0.7,
+   "Costs": 352.78
+   },
+   {
+   "id": 2,
+   "name": "milling by-products",
+   "FCE": 0.3,
+   "Costs": 70.18
+   },
+   {
+   "id": 3,
+   "name": "fruits and vegetables",  
+   "FCE": 0.6,
+   "Costs": 20.56
+   },
+   {
+   "id": 4,
+   "name": "Plant residus", 
+   "FCE": 0.5,
+   "Costs": 36.12
+   }, 
+   {
+   "id": 5,
+   "name": "Brewers spent grains", 
+   "FCE": 0.65,
+   "Costs": 50.18
+   }    
+        ]
+    }, 
+    {
+    "id": 4,
+    "name": "Mealworm", 
+    "risk": 2,                     
+    "total_indirect_costs": 850,   
+    "sales_price": 1600,  
+    "energy_water_cost": 45, 
+    "frass_price": 20,
+    "feed": [
+     {
+     "id": 1,
+     "name": "Poultry feed",
+     "FCE": 0.7,
+     "Costs": 1905
+     },
+     {
+     "id": 2,
+     "name": "milling by-products",
+     "FCE": 0.3,
+     "Costs": 379
+     },
+     {
+     "id": 3,
+     "name": "fruits and vegetables",  
+     "FCE": 0.6,
+     "Costs": 111
+     },
+     {
+     "id": 4,
+     "name": "Plant residus", 
+     "FCE": 0.5,
+     "Costs": 195
+     }, 
+     {
+     "id": 5,
+     "name": "Brewers spent grains", 
+     "FCE": 0.65,
+     "Costs": 271
+     }  
+        ] 
+    }  
+        ],
+    "Frsf": [0.8, 0.7, 0.5, 0.3],
+    "equipments": [
+     {
+     "id": 1,
+     "name": "gloves",
+     "equipment_cost": 150
+     },
+     {
+     "id": 2,
+     "name": "glasses",  
+     "equipment_cost": 200
+     },
+     {
+     "id": 3,
+     "name": "security_shoes",  
+     "equipment_cost": 730
+     }, 
+     {
+     "id": 4,
+     "name": "coveralls", 
+     "equipment_cost": 820
+     },
+     {
+     "id": 5,
+     "name": "hard_hat", 
+     "equipment_cost": 300
+     } 
+         ],    
+    "countries": [
+    {
+    "id": 1,
+    "name": "Netherland/beilen",
+    "rent": 710,   
+    "city_center_location": [{"lat": 52.8611395,"lon": 6.5122831}],  
+    "radius": 5.0,
+    "RWT": 36.75,
+    "MLW": 860.00,
+    "CWT": 35.38,
+    "IEF": 0.31, 
+    "pop": 9656,
+    "feed_suppliers": [{"lat": 52.8524924847616,"lon": 6.510235484291266}    ,
+    {"lat": 52.864774313238016, "lon": 6.513226872202976},
+    {"lat": 52.85682764465209, "lon": 6.599977121642542}
+    ],
+    "Frass_purchasers": [{"lat": 52.498256993787884,"lon": 6.118045029483457},
+    {"lat": 52.775061444937016, "lon": 6.910139949781189},
+    {"lat": 53.02202067747355, "lon": 6.587517018761044}
+    ]
+    },
+    {
+     "id": 2,
+     "name": "Germany/oberbergkirchen",
+     "rent": 710,   
+     "city_center_location": [{"lat": 48.3056741,"lon": 12.386573}],  
+     "radius": 10.0,
+     "RWT": 42.90,
+     "MLW": 1506.51,
+     "CWT": 34.15,
+     "IEF": 0.28,  
+     "pop": 1632,
+     "feed_suppliers": [{"lat": 48.36235226176605,"lon":12.25429311451667},   
+     {"lat": 48.2044715844984,"lon": 11.56020118885367},
+     {"lat": 48.35873711011865,"lon": 12.493699996348063}   
+     ],
+     "Frass_purchasers": [{"lat": 48.17334318436326,"lon": 11.477803728214717},  
+     {"lat": 48.25094791990749,"lon": 12.409929244698464},  
+     {"lat": 48.122031657649224,"lon": 11.428365251831348}  
+     ]
+    },
+    {
+     "id": 3,
+     "name": "France/Paris",
+     "rent": 710,   
+     "city_center_location": [{"lat": 48.8588897,"lon": 2.320041}],  
+     "radius": 5,
+     "RWT": 37.79,
+     "MLW": 1127.90,
+     "CWT": 32.31,
+     "IEF": 0.32, 
+     "pop": 20000,
+     "feed_suppliers": [{"lat": 48.869876358469305,"lon":2.1199807931709826}    ,
+     {"lat": 49.417537621354015,"lon": 1.14226801116488},
+     {"lat": 49.417537621354015,"lon": 2.0968826842220554}
+     ],
+     "Frass_purchasers": [{"lat": 49.031165049209726,"lon": 2.0826232687649053},
+     {"lat": 48.527195425506626,"lon": 2.683705864920848},
+     {"lat": 48.43442139342308,"lon": 1.4736525651977956}
+     ]
+      }, 
+    {
+    "id": 4,
+    "name": "UK/London",
+    "rent": 710,   
+    "city_center_location": [{"lat": 51.5073219,"lon": -0.1276474}], 
+    "radius": 5,
+    "RWT": 43.90,
+    "MLW": 1256.39,
+    "CWT": 37.74,
+    "IEF": 0.36, 
+    "pop": 8962000,
+    "feed_suppliers": [{"lat": 51.46001287080077,"lon": 0.1376537096638919},
+    {"lat": 51.575377196803785,"lon": -1.8128243330571714},
+    {"lat": 51.35882928242077,"lon": 0.516162319934513}
+    ],
+    "Frass_purchasers": [{"lat": 52.43317688910748,"lon": -1.8844389608548735},
+    {"lat": 52.870892966403076,"lon": 0.01295289929648068},
+    {"lat": 50.96195681022461,"lon": -1.4190593935872158}
+    ]
+
+    }  
+        ],
+    "SFls": [1, 1, 1, 1],
+    "lambda": [0.5, 0.5],
+    "radius": [{"min_radius": 3000, "max_radius": 15000}]
+    
+ }
