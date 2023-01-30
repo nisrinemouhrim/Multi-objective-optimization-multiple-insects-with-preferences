@@ -132,14 +132,12 @@ def generator(random, args) :
     json_instance = args["json_instance"]
     preferences = args["preferences"]
     
-    
     # here we need to generate a random individual and check that the boundaries are respected
     # to (hopefully) make our lives easier, individuals are encoded as dictionaries
     #print("Generating new individual...")
     individual = dict()
 
-    # first step: randomize the scale of the company and the real wages
-    
+    # first step: randomize the scale of the company (limited to the preferences expressed by the user)
     individual["SC"] = random.choice(preferences["Sc"])
 
     # other values are in (0,1), and will then be scaled depending on the scale of the company (before evaluation)
@@ -158,18 +156,15 @@ def generator(random, args) :
         individual["F"].append(random.uniform(0, 1) * preferences["fd"][i])
     denominator = sum(individual["F"])
     
-
     for i in range(0, boundaries["F"]) :
         individual["F"][i] /= denominator
         
     # an insect can or cannot be chosen; we also have to take into account user-defined preferences
-    individual["I"] = list()
-    start = True
-    while any(a != 0 for a in individual["I"]) == False or len(individual["I"]) == 0 or start == True:
-        individual["I"].clear()
-        for i in range(0, boundaries["I"]) :
-            individual["I"].append(random.choice([0, 1]) * preferences["I"][i]) 
-        start = False
+    no_insects = True
+    while no_insects :
+        individual["I"] = [ random.choice([0, preferences["I"][i]]) for i in range(0, len(preferences["I"])) ]
+        if sum(individual["I"]) > 0 :
+            no_insects = False
 
     # a country should be chosen
     individual["C"] = random.choice(preferences["C"]) 
@@ -336,10 +331,9 @@ def variator(random, candidate1, candidate2, args) :
             #print("Number of modifications: %d" % number_of_modifications)
             indexes = random.sample(range(0, len(individual["F"])), number_of_modifications)
 
-            # small Gaussian mutation on each quantity
+            # small Gaussian mutation on each quantity, modified by the preferences (if preferences["F"][index] == 0, that feed is not used)
             for index in indexes :
-                individual["F"][index] += random.gauss(0, 0.1)
-        
+                individual["F"][index] += random.gauss(0, 0.1) * preferences["fd"][index]
         
         elif to_be_mutated == "C" :
             # pick another country to implement the company, different from the current one
@@ -347,27 +341,20 @@ def variator(random, candidate1, candidate2, args) :
             individual["C"] = random.choice(c_choices)
                         
         elif to_be_mutated == "I" :
-            start = True
             # perform a random number of bit flips; low (high probability) or high (low probability)
-            while len(individual["I"]) == 0 or start == True :
-                number_of_bit_flips = min(random.randint(1, len(individual["I"])) for i in range(0, len(individual["I"])))
-                indexes = random.sample(range(0, len(individual["I"])), number_of_bit_flips)
-                start = False
-            
-            individual_2 = list()
-            for i in range(0, boundaries["I"]) :
-                individual_2.append(individual["I"][i])
-            for index in indexes :
-                if individual["I"][index] == 0 and preferences["I"] != 0:
-                    individual["I"][index] = 1
-                else :
-                    individual["I"][index] = 0
-            if any(a != 0 for a in individual["I"]) == False:
-                individual["I"].clear()
-                for i in range(0, boundaries["I"]) :
-                    individual["I"].append(individual_2[i])
-               
-                
+            number_of_bit_flips = min(random.randint(1, len(individual["I"])) for i in range(0, len(individual["I"])))
+            indexes = random.sample(range(0, len(individual["I"])), number_of_bit_flips)
+
+            no_insects = True
+            while no_insects :
+                for index in indexes :
+                    if preferences["I"][index] == 1 and individual["I"][index] == 0 :
+                        individual["I"][index] = 1
+                    else :
+                        individual["I"][index] = 0
+
+                if sum(individual["I"]) > 0 :
+                    no_insects = False
         
         elif to_be_mutated == "r" :
             individual["r"] += random.gauss(0, 0.1)
@@ -407,14 +394,15 @@ def observer(population, num_generations, num_evaluations, args) :
     print("Generation %d (%d evaluations)" % (num_generations, num_evaluations))
 
     boundaries = args["boundaries"]
+    json_instance = args["json_instance"]
     population_file_name = "population-generation-%d.csv" % num_generations
 
     print("Saving population to file \"%s\"..." % population_file_name)
-    save_population_to_csv(population, boundaries, csv_file_name=population_file_name)
+    save_population_to_csv(population, boundaries, json_instance, csv_file_name=population_file_name)
 
     return
 
-def save_population_to_csv(population, boundaries, csv_file_name="population.csv") :
+def save_population_to_csv(population, boundaries, json_instance, csv_file_name="population.csv") :
 
     df_dictionary = { "SC": [], "Nl": [], "AIF": [], "RW": [], "C": [], "r": [], "theta": [], "Economic_Impact": [], "Environmental_Impact": [],"Social_Impact": []}
 
@@ -433,7 +421,7 @@ def save_population_to_csv(population, boundaries, csv_file_name="population.csv
         fit_3 = individual.fitness[2]
 
         # TODO covert country to readable value
-        genome = { "SC": SC, "Nl": Nl, "AIF": AIF, "F": F, "EQ": EQ, "RW": RW, "C": C, "I": I, "r": r, "theta": theta, "Economic_Impact": fit_1, "Environmental_Impact": 1.0/fit_2, "Social_Impact": fit_3}
+        genome = { "SC": SC, "Nl": Nl, "AIF": AIF, "F": F, "EQ": EQ, "RW": RW, "C": json_instance["countries"][C-1]["name"], "I": I, "r": r, "theta": theta, "Economic_Impact": fit_1, "Environmental_Impact": 1.0/fit_2, "Social_Impact": fit_3}
 
         for k in genome:
             # manage parts of the genome who are lists
