@@ -87,10 +87,6 @@ def fitness_function(candidate, json_instance, boundaries) :
     FWP_max = 0.0
     social_rejection = 0.0
     profit = 0.0
-    
-    
-    # equipment cost
-    #weight = random.uniform(0, 1) # TODO why was this weight randomized?
 
     social_rejection_max = 0.0
     
@@ -105,16 +101,25 @@ def fitness_function(candidate, json_instance, boundaries) :
     FWP = (RW / json_instance["countries"][C-1]["RWT"])* (json_instance["countries"][C-1]["CWT"]/json_instance["countries"][C-1]["MLW"])*(1 - np.square(json_instance["countries"][C-1]["IEF"]))         
     FWP_max = (boundaries["RW"][C-1][1] / json_instance["countries"][C-1]["RWT"])* (json_instance["countries"][C-1]["CWT"]/json_instance["countries"][C-1]["MLW"])*(1 - np.square(json_instance["countries"][C-1]["IEF"]))
     for index_2, insect_dict in enumerate(json_instance["insects"]) : 
-        social_rejection += json_instance["countries"][C-1]["pop"] / DC[C-1] * insect_dict["risk"] * I[index_2] * SC  
-        social_rejection_max += json_instance["countries"][C-1]["pop"] / DC[C-1] * 4 * 1 * SC
+        if I[index_2] == 1 : # if the insect is actually used in this scenario
+            social_rejection += json_instance["countries"][C-1]["pop"] / DC[C-1] * insect_dict["risk"] * I[index_2] * SC  
+            social_rejection_max += json_instance["countries"][C-1]["pop"] / DC[C-1] * 4 * 1 * SC
     
     social_aspect = labor_safety / labor_safety_max + FWP / FWP_max +  social_rejection/social_rejection_max
     
+    # in order to compute profit and amount of frass, we first need to compute the total biomass of each insect; for this objective, we have
+    # a different "FCE" (Food Conversion E) for each insect and each feed, that indicates how much mass of feed is converted to mass of insect;
+    # as we do not know how much feed of each type will be allocated to each insect, we make the hypothesis that the feed is equally split between
+    # different species of insects
+    number_of_species = sum(I)
+
     for index, insect_dict in enumerate(json_instance["insects"]) :
-        for index_2, feed_dict in enumerate(insect_dict["feed"]) :
-            biomass = AIF * F[index_2] * feed_dict["FCE"]
-            insect_frass += AIF / feed_dict["FCE"] * (1.0 - feed_dict["FCE"]) * json_instance["Frsf"][SC-1]
-            profit += (insect_dict["sales_price"] - feed_dict["Costs"]) * biomass
+        if I[index] == 1 : # if the insect is actually used
+            for index_2, feed_dict in enumerate(insect_dict["feed"]) :
+                AIF_insect = AIF / number_of_species # the quantity of feed is evenly split among all insect species
+                biomass = AIF_insect * F[index_2] * feed_dict["FCE"]
+                insect_frass += AIF_insect / feed_dict["FCE"] * (1.0 - feed_dict["FCE"]) * json_instance["Frsf"][SC-1] # TODO this is likely wrong
+                profit += (insect_dict["sales_price"] - feed_dict["Costs"]) * biomass
     operating_profit =  profit - RW*Nl*12 -labor_safety_cost 
     
 
