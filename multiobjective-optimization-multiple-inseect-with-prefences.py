@@ -398,12 +398,13 @@ def observer(population, num_generations, num_evaluations, args) :
 
     print("Generation %d (%d evaluations)" % (num_generations, num_evaluations))
 
-    boundaries = args["boundaries"]
-    json_instance = args["json_instance"]
-    population_file_name = "population-generation-%d.csv" % num_generations
+    if args["save_generations"] == True :
+        boundaries = args["boundaries"]
+        json_instance = args["json_instance"]
+        population_file_name = "population-generation-%d.csv" % num_generations
 
-    print("Saving population to file \"%s\"..." % population_file_name)
-    save_population_to_csv(population, boundaries, json_instance, csv_file_name=population_file_name)
+        print("Saving population to file \"%s\"..." % population_file_name)
+        save_population_to_csv(population, boundaries, json_instance, csv_file_name=population_file_name)
 
     return
 
@@ -539,6 +540,7 @@ def main() :
                             boundaries = boundaries,
                             preferences = preferences,
                             json_instance = json_instance,
+                            save_generations = False,
     )
     end_time = time.time()
     print("Total time needed for the run: %.4f s" % (end_time - start_time))
