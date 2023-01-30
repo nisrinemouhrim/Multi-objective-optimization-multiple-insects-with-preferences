@@ -17,6 +17,7 @@ import pandas as pd # to manipulate CSV files
 import random # to generate random numbers
 import sys
 import math
+import time
 
 from random import randint
 from json import load, dump
@@ -65,12 +66,8 @@ def convert_individual_to_values(candidate, boundaries) :
     RW = candidate["RW"] * (boundaries["RW"][C-1][1] - boundaries["RW"][C-1][0]) + boundaries["RW"][C-1][0]
     I = candidate["I"]
     
-    
-
-        
-        
-
     return SC, Nl, AIF, F, EQ, RW, I, C, r, theta
+
 
 def fitness_function(candidate, json_instance, boundaries) :  
 
@@ -138,7 +135,7 @@ def generator(random, args) :
     
     # here we need to generate a random individual and check that the boundaries are respected
     # to (hopefully) make our lives easier, individuals are encoded as dictionaries
-    print("Generating new individual...")
+    #print("Generating new individual...")
     individual = dict()
 
     # first step: randomize the scale of the company and the real wages
@@ -165,7 +162,7 @@ def generator(random, args) :
     for i in range(0, boundaries["F"]) :
         individual["F"][i] /= denominator
         
-    # an insect can or cannot be chosen
+    # an insect can or cannot be chosen; we also have to take into account user-defined preferences
     individual["I"] = list()
     start = True
     while any(a != 0 for a in individual["I"]) == False or len(individual["I"]) == 0 or start == True:
@@ -284,7 +281,7 @@ def variator(random, candidate1, candidate2, args) :
     perform_crossover = random.uniform(0, 1) < 0.8 # this is True or False
     # cross-over
     if perform_crossover :
-        print("I am going to perform a cross-over!")
+        #print("I am going to perform a cross-over!")
         child1 = copy.deepcopy(candidate1)
         child2 = copy.deepcopy(candidate2)
 
@@ -308,7 +305,7 @@ def variator(random, candidate1, candidate2, args) :
     # randomly choose which part of the individual we are going to mutate
     for individual in children :
         to_be_mutated = random.choice([k for k in individual])
-        print("I am going to mutate part \"%s\"" % to_be_mutated)
+        #print("I am going to mutate part \"%s\"" % to_be_mutated)
 
         # different cases
         if to_be_mutated == "SC" :
@@ -336,7 +333,7 @@ def variator(random, candidate1, candidate2, args) :
             # perform a random number of value modifications; low (high probability) or high (low probability)
             number_of_modifications = min(random.randint(1, len(individual["F"])) for i in range(0, len(individual["F"])))
             # choose several types of feed (with replacement)
-            print("Number of modifications: %d" % number_of_modifications)
+            #print("Number of modifications: %d" % number_of_modifications)
             indexes = random.sample(range(0, len(individual["F"])), number_of_modifications)
 
             # small Gaussian mutation on each quantity
@@ -409,12 +406,49 @@ def observer(population, num_generations, num_evaluations, args) :
 
     print("Generation %d (%d evaluations)" % (num_generations, num_evaluations))
 
+    boundaries = args["boundaries"]
+    population_file_name = "population-generation-%d.csv" % num_generations
+
+    print("Saving population to file \"%s\"..." % population_file_name)
+    save_population_to_csv(population, boundaries, csv_file_name=population_file_name)
+
     return
 
+def save_population_to_csv(population, boundaries, csv_file_name="population.csv") :
 
+    df_dictionary = { "SC": [], "Nl": [], "AIF": [], "RW": [], "C": [], "r": [], "theta": [], "Economic_Impact": [], "Environmental_Impact": [],"Social_Impact": []}
 
-def variables_list( boundaries, json_preferences):
+    for e in range(0, boundaries["EQ"]) :
+        df_dictionary["EQ" + str(e)] = []
+    for f in range(0, boundaries["F"]) :
+        df_dictionary["F" + str(f)] = []
+    for g in range(0, boundaries["I"]) :
+        df_dictionary["I" + str(g)] = []
 
+    for individual in population :
+        SC, Nl, AIF, F, EQ, RW, I, C, r, theta  = convert_individual_to_values(individual.candidate, boundaries)
+
+        fit_1 = individual.fitness[0]
+        fit_2 = individual.fitness[1]
+        fit_3 = individual.fitness[2]
+
+        # TODO covert country to readable value
+        genome = { "SC": SC, "Nl": Nl, "AIF": AIF, "F": F, "EQ": EQ, "RW": RW, "C": C, "I": I, "r": r, "theta": theta, "Economic_Impact": fit_1, "Environmental_Impact": 1.0/fit_2, "Social_Impact": fit_3}
+
+        for k in genome:
+            # manage parts of the genome who are lists
+            if isinstance(genome[k], list) :
+                for i in range(0, len(genome[k])) :
+                    df_dictionary[k + str(i)].append(genome[k][i])
+            else:
+                df_dictionary[k].append(genome[k])             
+
+    df = pd.DataFrame.from_dict(df_dictionary)
+    df.to_csv(csv_file_name, index=False)
+
+    return
+
+def variables_list(boundaries, json_preferences):
        
     preferences = dict()
     preferences["fd"] = list()
@@ -447,9 +481,11 @@ def main() :
 
     # TODO also, we should do things properly and create a log file
 
+    print("Loading data and setting up multi-objective optimization...")
+
     # load information on the problem
-    json_instance = load_instance('../data/data_project_with_preferences.json') 
-    json_preferences = load_instance('../data/preferences.json') 
+    json_instance = load_instance('data_project_with_preferences.json') 
+    json_preferences = load_instance('preferences.json') 
     
     # boundaries for all the values included in the individual
     boundaries = dict()
@@ -491,12 +527,16 @@ def main() :
     nsga2.terminator = inspyred.ec.terminators.evaluation_termination # stop after a certain number of evaluations
     nsga2.variator = [variator] # types of evolutionary operators to be used
     
+    start_time = time.time()
     final_pareto_front = nsga2.evolve(
                             generator = generator,
-                            evaluator = evaluator,
-                            pop_size = 1000,
-                            num_selected = 2000,
-                            max_evaluations = 20000,
+                            evaluator = evaluator, # this line is for single-core evaluations; multi-core evaluations are the lines below
+                            #evaluator = inspyred.ec.evaluators.parallel_evaluation_mp,
+                            #mp_evaluator = evaluator,
+                            #mp_nprocs = 16,
+                            pop_size = 100,
+                            num_selected = 200,
+                            max_evaluations = 5000,
                             maximize = True, # TODO currently, it's trying to maximize EVERYTHING, so we need to 
                                              # have the fitness function output values that are better than higher
                                              # for example, use 1.0/value if the initial idea was to minimize
@@ -507,6 +547,8 @@ def main() :
                             preferences = preferences,
                             json_instance = json_instance,
     )
+    end_time = time.time()
+    print("Total time needed for the run: %.4f s" % (end_time - start_time))
 
     # save the final Pareto front in a .csv file
     # prepare dictionary that will be later converted to .csv file using Pandas library
@@ -526,7 +568,7 @@ def main() :
 
     # go over the list of individuals in the Pareto front and store them in the dictionary 
     # after converting them from the internal 'genome' representation to actual values
-    L = 0
+    print("Obtained a total of %d individuals in the Pareto front. Writing results to file..." % len(final_pareto_front))
     for individual in final_pareto_front :
         #genome = individual.genome # uncomment this line and comment the two lines below to have the individuals saved with their internal representation
         SC, Nl, AIF, F, EQ, RW, I, C, r, theta  = convert_individual_to_values(individual.candidate, boundaries)
@@ -537,19 +579,17 @@ def main() :
         
         genome = { "SC": SC, "Nl": Nl, "AIF": AIF, "F": F, "EQ": EQ, "RW": RW, "C": C, "I": I, "r": r, "theta": theta, "Economic_Impact": val_1, "Environmental_Impact": 1/val_2, "Social_Impact": val_3}
 
-        if L %200 == 0:
-            for k in genome:
-                # manage parts of the genome who are lists
-                if isinstance(genome[k], list) :
-                    for i in range(0, len(genome[k])) :
-                        df_dictionary[k + str(i)].append(genome[k][i])
-                else:
-                    df_dictionary[k].append(genome[k])             
+        #if L %200 == 0: # this line was just to save one individual every 200 (...)
+        for k in genome:
+            # manage parts of the genome who are lists
+            if isinstance(genome[k], list) :
+                for i in range(0, len(genome[k])) :
+                    df_dictionary[k + str(i)].append(genome[k][i])
+            else:
+                df_dictionary[k].append(genome[k])             
 
-            df = pd.DataFrame.from_dict(df_dictionary)
-            df.to_csv("pareto-front_2.csv", index=False)
-        L += 1   
-        
+    df = pd.DataFrame.from_dict(df_dictionary)
+    df.to_csv("pareto-front_2.csv", index=False)
        
     return
 

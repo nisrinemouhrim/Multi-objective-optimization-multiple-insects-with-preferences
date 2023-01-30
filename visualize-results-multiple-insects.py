@@ -9,7 +9,7 @@ import sys
 
 from mpl_toolkits.mplot3d import Axes3D # this is for 3D figures
 
-sns.set_theme() # set the SeaBorn graphical theme, it looks nice 
+#sns.set_theme() # set the SeaBorn graphical theme, it looks nice 
 
 def plot_2d(df, output_folder, fitness_a, fitness_b) :
 
@@ -36,7 +36,8 @@ def main() :
 
     # a few hard-coded values
     #input_file = "pareto-front.csv"
-    input_file = "pareto-front_2.csv"
+    #input_file = "pareto-front_2.csv"
+    input_file = "2022-12-09-experiments-alberto/pareto_front_pop_1000.csv"
     fitness_names = ["Economic_Impact", "Environmental_Impact", "Social_Impact"] # these should be changed with the names of the corresponding columns in the CSV file
     # output folder with a unique name, using the current date and time
     output_folder = datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")+ "-visualize-results" 
